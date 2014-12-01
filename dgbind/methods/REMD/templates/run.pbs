@@ -1,0 +1,34 @@
+#!/bin/csh
+{% if pbs.header -%}
+{{ pbs.header }}
+{% endif -%}
+#PBS -q {{ pbs.queue|default("QUEUE") }}
+#PBS -o ./error/out
+#PBS -e ./error/err
+#PBS -l walltime=15:00:00,size=3000
+#PBS -N barnb
+
+cd $PBS_O_WORKDIR
+
+setenv MPICH_MAX_SHORT_MSG_SIZE 50000
+
+set NUM_REPLICAS=125
+set OUTPUT_DIR=output
+
+@ c = 0
+while ($c < $NUM_REPLICAS)
+   mkdir -p $OUTPUT_DIR/$c
+@ c += 1
+end
+
+@ pcnt = $icnt - 1
+@ pstep = {{ numruns }} * $icnt
+@ istep = $pstep + {{ numruns }}
+@ ncnt = $icnt + 1
+set cntmax = {{ maxruns }}
+qsub -v icnt=$ncnt -W depend=afterok:$PBS_JOBID run.pbs
+
+sed -e 's/$pcnt/'$pcnt'/g' -e 's/$pstep/'$pstep'/g' -e 's/$istep/'$istep'/g' base.conf > job$icnt.conf
+
+aprun -n $PBS_NNODES -cc cpu {{ namddir }}/namd2 +replicas 125 job$icnt.conf +stdout output/%d/job$icnt.%d.log
+
