@@ -1,5 +1,7 @@
 from jinja2 import Template
 import MDAnalysis as mda
+import os
+import StringIO
 
 class ColvarRMSD:
     _template = """
@@ -16,8 +18,8 @@ colvar {
                 {% endfor %}
             }
         }
-        refpositionfile input/{{refpdb}}
-        refpositioncol  B
+        refPositionFile input/{{ refpdb }}
+        refPositionCol  B
     }
 }
 
@@ -33,8 +35,11 @@ harmonic {
         self.template = Template(self._template)
         self.spec = kwargs
         self.spec['name'] = name
+        if self.spec.has_key('refpdb'):
+            universe.load_new(self.spec['refpdb'])
         self.spec['selected_atoms'] = universe.selectAtoms(self.spec['selection'])
-        print kwargs
+        self.spec['selected_atoms'].set_bfactor(1)
+        self.spec['refpdb'] = '%s.ref' % name
 
     def write(self):
         return self.template.render(self.spec)
@@ -73,7 +78,6 @@ harmonic {
         self.spec['name'] = name
         self.spec['refatoms'] = [universe.selectAtoms(self.spec['refatoms'][ref]) for ref in self.spec['angle']]
         self.spec['angletype'] = 'angle' if len(self.spec['refatoms']) == 3 else 'dihedral'
-        print kwargs
 
     def write(self):
         return self.template.render(self.spec)
@@ -111,21 +115,108 @@ harmonic {
         self.spec = kwargs
         self.spec['name'] = name
         self.spec['refatoms'] = [universe.selectAtoms(self.spec['refatoms'][ref]) for ref in self.spec['distance']]
-        print kwargs
+
+    def write(self):
+        return self.template.render(self.spec)
+
+class ColvarOmega:
+    _template = """
+colvar {
+    name {{name}}
+
+    orientation
+        atoms {
+            atomnumbers {
+                {%- for column in selected_atoms|batch(10) %}
+                {% for atom in column -%}
+                {{ "%6i" | format(atom.number+1) }} 
+                {%- endfor -%}
+                {% endfor %}
+            }
+        }
+        refPositionFile input/{{ refpdb }}
+        refPositionCol  B
+    }
+}
+
+harmonic {
+    name          {{ name }}
+    colvars       {{ name }}
+    forceconstant {{ forceconstant|default(500) }}
+    centers       {{ centers|default("(1.0, 0.0, 0.0, 0.0)") }}
+}
+"""
+
+    def __init__(self, name, universe, **kwargs):
+        self.template = Template(self._template)
+        self.spec = kwargs
+        self.spec['name'] = name
+        if self.spec.has_key('receptor'): self.spec['selection'] = self.spec['selection'].replace('receptor', self.spec['receptor'])
+        if self.spec.has_key('ligand'): self.spec['selection'] = self.spec['selection'].replace('ligand', self.spec['ligand'])
+        self.spec['selected_atoms'] = universe.selectAtoms(self.spec['selection'])
+        self.spec['selected_atoms'].set_bfactor(1)
+        self.spec['refpdb'] = 'omega.pdb'
+        self.spec['selected_atoms'].write(os.path.join('input', self.spec['refpdb']))
+
+    def write(self):
+        return self.template.render(self.spec)
+
+class ColvarPin:
+    _template = """
+colvar {
+    name {{name}}
+
+    distance
+        group1 {
+            dummyatom ( {{ refx }}, {{ refy }}, {{ refz }} )
+        }
+        group2 {
+            atomnumbers {
+                {%- for column in selected_atoms|batch(10) %}
+                {% for atom in column -%}
+                {{ "%6i" | format(atom.number+1) }} 
+                {%- endfor -%}
+                {% endfor %}
+            }
+        }
+    }
+}
+
+harmonic {
+    name          {{ name }}
+    colvars       {{ name }}
+    forceconstant {{ forceconstant|default(100) }}
+    centers       {{ centers|default(0.0) }}
+}
+"""
+
+    def __init__(self, name, universe, **kwargs):
+        self.template = Template(self._template)
+        self.spec = kwargs
+        self.spec['name'] = name
+        if self.spec.has_key('receptor'): self.spec['selection'] = self.spec['selection'].replace('receptor', self.spec['receptor'])
+        if self.spec.has_key('ligand'): self.spec['selection'] = self.spec['selection'].replace('ligand', self.spec['ligand'])
+        self.spec['selected_atoms'] = universe.selectAtoms(self.spec['selection'])
+        com = self.spec['selected_atoms'].centerOfMass()
+        self.spec['refx'], self.spec['refy'], self.spec['refz'] = com
 
     def write(self):
         return self.template.render(self.spec)
 
 
-class Colvars:
+
+class Colvars(object):
     _template = """colvarstrajfrequency 20
 %s
 """
-
-    def __init__(self, conf):
+    def __init__(self, conf, psffile, pdbfile):
         self.colvars = []
         self.conf = conf
-        self.universe = mda.Universe(conf['psffile'], conf['pdbfile'])
+        self.universe = mda.Universe(psffile, pdbfile)
+
+    def __iter__(self):
+        for colvar in self.colvars:
+            yield colvar
 
     def append(self, colvar_type, name, **kwargs):
         colvar = None
