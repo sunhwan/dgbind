@@ -1,17 +1,18 @@
 import os
 import shutil
 from jinja2 import Template
+from MDAnalysis.coordinates.core import get_writer_for
 
-class Controller:
-    def __init__(self, conf):
+class Controller(object):
+    def __init__(self, conf, colvars):
         self.conf = conf
-
+        self.colvars = colvars
 
     def validates(self):
+        """Validates selection and input psf/pdb files"""
         pass
 
-
-    def _createJobDirs(self, jobdir, jobname, colvar, spec):
+    def createJobDirs(self, jobdir, jobname, colvar, spec):
         inputdir = os.path.join(jobdir, 'input')
         outputdir = os.path.join(jobdir, 'output')
         colvarfile = os.path.join(inputdir, 'colvars.conf')
@@ -23,69 +24,41 @@ class Controller:
         colvar = self.colvars.append(colvar, jobname, **spec)
         colvar.write(colvarfile)
 
-        shutil.copyfile(self.conf['psffile'], os.path.join(inputdir, self.conf['psffile']))
-        shutil.copyfile(self.conf['pdbfile'], os.path.join(inputdir, self.conf['pdbfile']))
+        for cv in self.colvars:
+            if cv.spec.has_key('refpdb') and cv.spec.has_key('selected_atoms'):
+                refpdb = os.path.join(inputdir, os.path.basename(cv.spec['refpdb']))
+                writer = get_writer_for(format='PDB', multiframe=False)
+                writer(refpdb).write(cv.spec['selected_atoms'])
+
+        psffile = os.path.basename(spec['psffile'])
+        pdbfile = os.path.basename(spec['pdbfile'])
+        shutil.copyfile(spec['psffile'], os.path.join(inputdir, psffile))
+        shutil.copyfile(spec['pdbfile'], os.path.join(inputdir, pdbfile))
 
         for i in range(spec['nwin']):
             windir = os.path.join(outputdir, str(i))
             if not os.path.exists(windir): os.mkdir(windir)
 
+        for filename in ('umbrella.namd', 'base.conf', 'sort.py', 'prepare.py'):
+            realname = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'static', filename)
+            shutil.copyfile(realname, os.path.join(jobdir, os.path.basename(realname)))
+
+        for filename in ('remd.conf',):
+            realname = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', filename)
+            filename = os.path.join(os.path.join(jobdir, os.path.basename(realname)))
+            template = Template(open(realname).read())
+            open(filename, 'w').write(template.render(spec))
+
         return jobdir, inputdir, outputdir
 
-    def _createRMSD(self, jobname, jobdir, spec):
-        jobdir, inputdir, outputdir = self._createJobDirs(jobdir, jobname, 'RMSD', spec)
-        shutil.copyfile(spec['refpdb'], os.path.join(inputdir, spec['refpdb']))
+    def createRMSD(self, jobname, jobdir, spec):
+        jobdir, inputdir, outputdir = self.createJobDirs(jobdir, jobname, 'RMSD', spec)
+        refpdb = os.path.basename(spec['refpdb'])
+        shutil.copyfile(spec['refpdb'], os.path.join(inputdir, refpdb))
 
-    def _createAngle(self, jobname, jobdir, spec):
-        jobdir, inputdir, outputdir = self._createJobDirs(jobdir, jobname, 'Angle', spec)
+    def createAngle(self, jobname, jobdir, spec):
+        jobdir, inputdir, outputdir = self.createJobDirs(jobdir, jobname, 'Angle', spec)
 
-    def _createSepR(self, jobname, jobdir, spec):
-        jobdir, inputdir, outputdir = self._createJobDirs(jobdir, jobname, 'Distance', spec)
+    def createDistance(self, jobname, jobdir, spec):
+        jobdir, inputdir, outputdir = self.createJobDirs(jobdir, jobname, 'Distance', spec)
 
-
-    def create(self):
-        for jobname in ['RMSDs/bb-receptor', 'RMSDs/bb-ligand', 'RMSDs/sc-receptor', 'RMSDs/sc-ligand',
-                        'Angles/phi', 'Angles/theta', 'Angles/alpha', 'Angles/beta', 'Angles/gamma',
-                        'Distance/sepR']:
-            jobtype, jobname = jobname.split('/')
-            basedir = os.path.join(self.conf['workdir'], jobtype)
-            jobdir = os.path.join(basedir, jobname)
-            spec = self.conf['simulations'][jobtype][jobname]
-
-            if not spec.has_key('nwin'):
-                spec['nwin'] = int((spec['max'] - spec['min']) / spec['bin']) + 1
-            if not spec.has_key('numruns'):
-                spec['numruns'] = self.conf['numruns']
-            if not spec.has_key('temperature'):
-                spec['temperature'] = self.conf['temperature']
-            if not spec.has_key('jobname'):
-                spec['jobname'] = jobname
-
-            if jobtype == 'RMSDs':
-                self._createRMSD(jobname, jobdir, spec)
-            if jobtype == 'Angles':
-                spec['centers'] = self.conf['simulations']['refvalues'][jobname]
-                spec['refatoms'] = {}
-                for ref in spec['angle']:
-                    spec['refatoms'][ref] = self.conf['simulations']['refatoms'][ref]
-                self._createAngle(jobname, jobdir, spec)
-            if jobtype == 'Distance':
-                spec['refatoms'] = {}
-                for ref in spec['distance']:
-                    spec['refatoms'][ref] = self.conf['simulations']['refatoms'][ref]
-                self._createSepR(jobname, jobdir, spec)
-
-            for filename in ('umbrella.namd', 'base.conf', 'sort.py', 'prepare.py'):
-                realname = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'static', filename)
-                shutil.copyfile(realname, os.path.join(jobdir, os.path.basename(realname)))
-
-            for filename in ('remd.conf',):
-                realname = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', filename)
-                filename = os.path.join(os.path.join(jobdir, os.path.basename(realname)))
-                template = Template(open(realname).read())
-                open(filename, 'w').write(template.render(spec))
-
-
-    def validate(self):
-        # validate selection
-        pass
