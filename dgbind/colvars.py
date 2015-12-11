@@ -37,8 +37,10 @@ harmonic {
         self.spec['name'] = name
         if self.spec.has_key('refpdb'):
             universe.load_new(self.spec['refpdb'])
-        self.spec['selected_atoms'] = universe.selectAtoms(self.spec['selection'])
-        self.spec['selected_atoms'].set_bfactor(1)
+        if self.spec.has_key('receptor'): self.spec['selection'] = self.spec['selection'].replace('receptor', self.spec['receptor'])
+        if self.spec.has_key('ligand'): self.spec['selection'] = self.spec['selection'].replace('ligand', self.spec['ligand'])
+        self.spec['selected_atoms'] = universe.select_atoms(self.spec['selection'])
+        self.spec['selected_atoms'].set_bfactors(1)
         self.spec['refpdb'] = '%s.ref' % name
 
     def write(self):
@@ -76,7 +78,7 @@ harmonic {
         self.template = Template(self._template)
         self.spec = kwargs
         self.spec['name'] = name
-        self.spec['refatoms'] = [universe.selectAtoms(self.spec['refatoms'][ref]) for ref in self.spec['angle']]
+        self.spec['refatoms'] = [universe.select_atoms(self.spec['refatoms'][ref]) for ref in self.spec['angle']]
         self.spec['angletype'] = 'angle' if len(self.spec['refatoms']) == 3 else 'dihedral'
 
     def write(self):
@@ -114,7 +116,7 @@ harmonic {
         self.template = Template(self._template)
         self.spec = kwargs
         self.spec['name'] = name
-        self.spec['refatoms'] = [universe.selectAtoms(self.spec['refatoms'][ref]) for ref in self.spec['distance']]
+        self.spec['refatoms'] = [universe.select_atoms(self.spec['refatoms'][ref]) for ref in self.spec['distance']]
 
     def write(self):
         return self.template.render(self.spec)
@@ -153,8 +155,8 @@ harmonic {
         self.spec['name'] = name
         if self.spec.has_key('receptor'): self.spec['selection'] = self.spec['selection'].replace('receptor', self.spec['receptor'])
         if self.spec.has_key('ligand'): self.spec['selection'] = self.spec['selection'].replace('ligand', self.spec['ligand'])
-        self.spec['selected_atoms'] = universe.selectAtoms(self.spec['selection'])
-        self.spec['selected_atoms'].set_bfactor(1)
+        self.spec['selected_atoms'] = universe.select_atoms(self.spec['selection'])
+        self.spec['selected_atoms'].set_bfactors(1)
         self.spec['refpdb'] = 'omega.pdb'
         self.spec['selected_atoms'].write(os.path.join('input', self.spec['refpdb']))
 
@@ -196,8 +198,8 @@ harmonic {
         self.spec['name'] = name
         if self.spec.has_key('receptor'): self.spec['selection'] = self.spec['selection'].replace('receptor', self.spec['receptor'])
         if self.spec.has_key('ligand'): self.spec['selection'] = self.spec['selection'].replace('ligand', self.spec['ligand'])
-        self.spec['selected_atoms'] = universe.selectAtoms(self.spec['selection'])
-        com = self.spec['selected_atoms'].centerOfMass()
+        self.spec['selected_atoms'] = universe.select_atoms(self.spec['selection'])
+        com = self.spec['selected_atoms'].center_of_mass()
         self.spec['refx'], self.spec['refy'], self.spec['refz'] = com
 
     def write(self):

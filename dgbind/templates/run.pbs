@@ -21,12 +21,12 @@ while ($c < $NUM_REPLICAS)
 @ c += 1
 end
 
-@ pcnt = $icnt - 1
-@ pstep = {{ numruns }} * $icnt
-@ istep = $pstep + {{ numruns }}
-@ ncnt = $icnt + 1
-set cntmax = {{ maxruns }}
-qsub -v icnt=$ncnt -W depend=afterok:$PBS_JOBID run.pbs
+@ cntmax = {{ maxruns }}
+@ pcnt   = $icnt - 1
+@ pstep  = {{ numruns }} * $icnt
+@ istep  = $pstep + {{ numruns }}
+@ ncnt   = $icnt + 1
+if ( $cntmax > $ncnt ) qsub -v icnt=$ncnt -W depend=afterok:$PBS_JOBID run.pbs
 
 sed -e 's/$pcnt/'$pcnt'/g' -e 's/$pstep/'$pstep'/g' -e 's/$istep/'$istep'/g' base.conf > job$icnt.conf
 
