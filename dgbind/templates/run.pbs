@@ -2,33 +2,34 @@
 {% if pbs.header -%}
 {{ pbs.header }}
 {% endif -%}
-#PBS -q {{ pbs.queue|default("QUEUE") }}
+{% if pbs.queue -%}
+#PBS -q {{ pbs.queue }}
+{% endif -%}
 #PBS -o ./error/out
 #PBS -e ./error/err
-#PBS -l walltime=15:00:00,size=3000
-#PBS -N barnb
+#PBS -l nodes={{ nodes_per_job }}:ppn={{ cpus_per_node }}
+#PBS -l walltime=12:00:00
+#PBS -N {{ jobname }}
 
 cd $PBS_O_WORKDIR
 
-setenv MPICH_MAX_SHORT_MSG_SIZE 50000
+mkdir -p error
 
-set NUM_REPLICAS=125
-set OUTPUT_DIR=output
-
-@ c = 0
-while ($c < $NUM_REPLICAS)
-   mkdir -p $OUTPUT_DIR/$c
-@ c += 1
-end
-
-@ cntmax = {{ maxruns }}
+@ ncpus  = 1
+@ cntmax = {{ num_windows }}
 @ pcnt   = $icnt - 1
-@ pstep  = {{ numruns }} * $icnt
-@ istep  = $pstep + {{ numruns }}
 @ ncnt   = $icnt + 1
-if ( $cntmax > $ncnt ) qsub -v icnt=$ncnt -W depend=afterok:$PBS_JOBID run.pbs
+if ( $cntmax > $ncnt ) qsub -N {{ jobname }}_$ncnt -v icnt=$ncnt -W depend=afterok:$PBS_JOBID run.pbs
 
-sed -e 's/$pcnt/'$pcnt'/g' -e 's/$pstep/'$pstep'/g' -e 's/$istep/'$istep'/g' base.conf > job$icnt.conf
+sed -e 's/$step/'$icnt'/g' namd.conf > input.$icnt.conf
 
-aprun -n $PBS_NNODES -cc cpu {{ namddir }}/namd2 +replicas 125 job$icnt.conf +stdout output/%d/job$icnt.%d.log
+if ( $icnt > 0 ) then
+    @ target = {{ delta }} * $icnt
+    python prepare.py input.$pcnt.dcd input.$icnt.pdb $target
+endif
 
+{% if use_rest %}
+{{ restdir }}/charmrun +p$ncpus {{ restdir }}/namd2 input.$icnt.conf > input.$icnt.log
+{% else %}
+{{ namddir }}/charmrun +p$ncpus {{ namddir }}/namd2 input.$icnt.conf > input.$icnt.log
+{% endif %}

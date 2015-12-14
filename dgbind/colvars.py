@@ -18,8 +18,8 @@ colvar {
                 {% endfor %}
             }
         }
-        refPositionFile input/{{ refpdb }}
-        refPositionCol  B
+        refPositionsFile {{ inputdir }}/{{ refpdb }}
+        refPositionsCol  B
     }
 }
 
@@ -89,7 +89,7 @@ class ColvarDistance:
 colvar {
     name {{name}}
 
-    distance
+    distance {
         {%- for selected_atoms in refatoms %}
         group{{ loop.index }} {
             atomnumbers {
@@ -126,7 +126,7 @@ class ColvarOmega:
 colvar {
     name {{name}}
 
-    orientation
+    orientation {
         atoms {
             atomnumbers {
                 {%- for column in selected_atoms|batch(10) %}
@@ -136,8 +136,8 @@ colvar {
                 {% endfor %}
             }
         }
-        refPositionFile input/{{ refpdb }}
-        refPositionCol  B
+        refPositionsFile {{ inputdir }}/{{ refpdb }}
+        refPositionsCol  B
     }
 }
 
@@ -168,9 +168,9 @@ class ColvarPin:
 colvar {
     name {{name}}
 
-    distance
+    distance {
         group1 {
-            dummyatom ( {{ refx }}, {{ refy }}, {{ refz }} )
+            dummyatom ( {{ "%8.3f"|format(refx) }}, {{ "%8.3f"|format(refy) }}, {{ "%8.3f"|format(refz) }} )
         }
         group2 {
             atomnumbers {
