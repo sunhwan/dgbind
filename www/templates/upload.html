@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form class="form-horizontal" method="POST" id='form' action="{{ url_for('reference', jobid=jobid) }}">
+<input type='hidden' name='jobid' value='{{ jobid }}'>
+
+<div class="control-group">
+  <label class="control-label">PSF file</label>
+  <div class="controls">
+    <span class="control-label help-inline" style="text-align:left">{{ psffile }}</span>
+    <input type="hidden" name="psffile" value="{{ psffile }}">
+  </div>
+</div>
+
+<div class="control-group">
+  <label class="control-label">PDB file</label>
+  <div class="controls">
+    <span class="control-label help-inline" style="text-align:left">{{ pdbfile }}</span>
+    <input type="hidden" name="pdbfile" value="{{ pdbfile }}">
+  </div>
+</div>
+
+<div class="control-group">
+  <label class="control-label">Segments</label>
+  <div class="controls">
+    <table class="table-condensed">
+      <tr>
+        <td>Receptor</td>
+        <td>
+          <select name='receptor-segid' class='input-mini' style='height: 24px; width: 100px;'>
+{% for segid in segments %}
+            <option value="{{ segid }}"{% if loop.index == 1 %} selected{% endif %}>{{ segid }}</option>
+{% endfor %}
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td>Ligand</td>
+        <td>
+          <select name='ligand-segid' class='input-mini' style='height: 24px; width: 100px;'>
+{% for segid in segments %}
+            <option value="{{ segid }}"{% if loop.index == 2 %} selected{% endif %}>{{ segid }}</option>
+{% endfor %}
+          </select>
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="control-group">
+  <label class="control-label">System Settings</label>
+  <div class="controls">
+    <table class="table-condensed">
+      <tr>
+        <td>Ensemble</td>
+        <td>
+          <select name='ensemble' class='input-mini' style='height: 24px; width: 100px;'>
+            <option value='NPT'>NPT</option>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td>Temperature</td>
+        <td><input type='text' name='temperature' value='300' calss='input-mini' style='height:14px; width: 50px;' required> K</td>
+      </tr>
+      <tr>
+        <td>Pressure</td>
+        <td><input type='text' name='pressure' value='1.0135' calss='input-mini' style='height:14px; width: 50px;' required> bar</td>
+      </tr>
+      <tr>
+        <td>Force field</td>
+        <td>
+          <select name='fftype' class='input-mini' style='height: 24px; width: 100px;'>
+            <option value='CHARMM'>CHARMM</option>
+          </select>
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="control-group">
+  <div class="controls">
+    <button class="btn" type="submit" id='upload'>Define Reference Atoms</button>
+  </div>
+</div>
+</form>
+
+{% endblock %}

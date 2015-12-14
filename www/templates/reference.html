@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block extrajs %}
+<script type="text/javascript" src="/static/js/jsmol/JSmol.min.nojq.js"></script>
+{% endblock %}
+
+{% block javascript %}
+var jmolApplet0; // set up in HTML table, below
+
+// logic is set by indicating order of USE -- default is HTML5 for this test page, though
+
+var s = document.location.search;
+
+// Developers: The _debugCode flag is checked in j2s/core/core.z.js, 
+// and, if TRUE, skips loading the core methods, forcing those
+// to be read from their individual directories. Set this
+// true if you want to do some code debugging by inserting
+// System.out.println, document.title, or alert commands
+// anywhere in the Java or Jmol code.
+
+Jmol._debugCode = (s.indexOf("debugcode") >= 0);
+
+jmol_isReady = function(applet) {
+  //document.title = (applet._id + " - Jmol " + ___JmolVersion)
+  Jmol._getElement(applet, "appletdiv").style.border="1px solid blue"
+  Jmol.script(applet, 'select *.DUM; spacefill 200%');
+  Jmol.script(applet, 'color label blue');
+  Jmol.script(applet, 'select 1.DUM; label "P1"');
+  Jmol.script(applet, 'select 2.DUM; label "P2"');
+  Jmol.script(applet, 'select 3.DUM; label "P3"');
+  Jmol.script(applet, 'select 4.DUM; label "L1"');
+  Jmol.script(applet, 'select 5.DUM; label "L2"');
+  Jmol.script(applet, 'select 6.DUM; label "L3"');
+  //Jmol.script(applet, 'measure (1.DUM) (4.DUM) "%3.1VALUE //AÅ"')
+}
+
+Info = {
+  width: 300,
+  height: 300,
+  debug: false,
+  color: "#F0F0F0",
+  zIndexBase: 20000,
+  z:{monitorZIndex:100},
+  addSelectionOptions: false,
+  serverURL: "http://chemapps.stolaf.edu/jmol/jsmol/php/jsmol.php",
+  use: "HTML5",
+  //language: "fr", // NOTE: LOCALIZATION REQUIRES <meta charset="utf-8"> (see JSmolCore Jmol.featureDetection.supportsLocalization)
+  jarPath: "java",
+  j2sPath: "/static/js/jsmol/j2s",
+  jarFile: "JmolApplet.jar",
+  isSigned: false,
+  disableJ2SLoadMonitor: false,
+  disableInitialConsole: false,
+  readyFunction: jmol_isReady,
+  allowjavascript: true,
+  script: "set platformSpeed 5; load {{ url_for('download', jobid=jobid, filename='reference.pdb') }}; select protein or nucleic; cartoons only; color chains; select *.DUM; spacefill only;"
+  //,defaultModel: ":dopamine"
+  //,noscript: true
+  //console: "none", // default will be jmolApplet0_infodiv
+  //script: "set antialiasDisplay;background white;load data/caffeine.mol;"
+  //delay 3;background yellow;delay 0.1;background white;for (var i = 0; i < 10; i+=1){rotate y 3;delay 0.01}"
+}
+
+$(document).ready(function() {
+  $("#appdiv").html(Jmol.getAppletHtml("jmolApplet0", Info))
+})
+var lastPrompt=0;
+{% endblock %}
+
+
+{% block content %}
+<form class="form-horizontal" method="POST" id='form' action="{{ url_for('method', jobid=jobid) }}">
+
+<div class="control-group">
+  <label class="control-label">Reference atoms</label>
+  <div class="controls">
+    <table class="table-condensed">
+      <tr>
+        <td>P1</td>
+        <td><input type='text' name='selections[0]' value='{{ selections[0] }}' calss='input-mini' style='height:14px; width: 350px;' required></td>
+      </tr>
+      <tr>
+        <td>P2</td>
+        <td><input type='text' name='selections[1]' value='{{ selections[1] }}' calss='input-mini' style='height:14px; width: 350px;' required></td>
+      </tr>
+      <tr>
+        <td>P3</td>
+        <td><input type='text' name='selections[2]' value='{{ selections[2] }}' calss='input-mini' style='height:14px; width: 350px;' required></td>
+      </tr>
+      <tr>
+        <td>L1</td>
+        <td><input type='text' name='selections[3]' value='{{ selections[3] }}' calss='input-mini' style='height:14px; width: 350px;' required></td>
+      </tr>
+      <tr>
+        <td>L2</td>
+        <td><input type='text' name='selections[4]' value='{{ selections[4] }}' calss='input-mini' style='height:14px; width: 350px;' required></td>
+      </tr>
+      <tr>
+        <td>L3</td>
+        <td><input type='text' name='selections[5]' value='{{ selections[5] }}' calss='input-mini' style='height:14px; width: 350px;' required></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="controls" style="margin-top: 1em">
+    <button class="btn" type="button" id='suggest'>Suggest Reference Atoms</button>
+    <button class="btn" type="button" id='visualize'>Visualize Referece Atoms</button>
+  </div>
+</div>
+
+<div class="control-group" style="padding: 1em;">
+  <div id="appdiv" style="float: left; padding: 0em 2em;"></div>
+
+  <div style="float: left">
+    <table class="table-condensed">
+      <tr>
+        <td>alpha (P2-P1-L1)</td>
+        <td>{{ "%6.1f"|format(refvalues.alpha) }}˚</td>
+      </tr>
+      <tr>
+        <td>beta (P3-P2-P1-L1)</td>
+        <td>{{ "%6.1f"|format(refvalues.beta) }}˚</td>
+      </tr>
+      <tr>
+        <td>gamma (P2-P1-L1-L2)</td>
+        <td>{{ "%6.1f"|format(refvalues.gamma) }}˚</td>
+      </tr>
+      <tr>
+        <td>r (P1-L1)</td>
+        <td>{{ "%6.1f"|format(refvalues.r) }} Å</td>
+      </tr>
+      <tr>
+        <td>theta (P1-L1-L2)</td>
+        <td>{{ "%6.1f"|format(refvalues.theta) }}˚</td>
+      </tr>
+      <tr>
+        <td>phi</td>
+        <td>{{ "%6.1f"|format(refvalues.phi) }}˚</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="control-group">
+  <div class="controls">
+  <button class="btn" type="submit" id='upload'>Define Free Energy Method</button>
+  </div>
+</div>
+</form>
+
+{% endblock %}

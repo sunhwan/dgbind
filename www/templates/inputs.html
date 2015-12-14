@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row-fluid marketing text-center">
+<div class='hero-unit'>
+  <h3>Your inputs are successfully generated.</h3>
+
+  <p>
+    Click <a href="{{ url_for('download', jobid=jobid) }}">here</a> to download your input files.
+  </p>
+  <p> JOBID: {{ jobid }} </p>
+</div>
+</div>
+
+{% endblock %}

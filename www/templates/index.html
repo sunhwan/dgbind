@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form class="form-horizontal" enctype="multipart/form-data" method="POST" id='form' action="{{ action|default(url_for('upload')) }}">
+
+<div class="alert alert-info">Please upload PSF and CRD/PDB file that containing the fully solvated system.
+</div>
+
+<div class="control-group">
+  <label class="control-label">PSF file</label>
+  <div class="controls">
+    <div class="fileupload fileupload-new" data-provides="fileupload">
+      <span class="btn btn-file" id='pickfiles'><span class="fileupload-new">Select file</span><span class="fileupload-exists">Change</span><input type="file" name='psffile' /></span>
+      <span class="fileupload-preview"></span>
+      <a href="#" class="close fileupload-exists" data-dismiss="fileupload" style="float: none">×</a>
+    </div>
+  </div>
+</div>
+
+<div class="control-group">
+  <label class="control-label">PDB file</label>
+  <div class="controls">
+    <div class="fileupload fileupload-new" data-provides="fileupload">
+      <span class="btn btn-file"><span class="fileupload-new">Select file</span><span class="fileupload-exists">Change</span><input type="file" name='pdbfile' /></span>
+      <span class="fileupload-preview"></span>
+      <a href="#" class="close fileupload-exists" data-dismiss="fileupload" style="float: none">×</a>
+    </div>
+  </div>
+</div>
+
+<div class="control-group">
+  <label class="control-label">DCD file (optional)</label>
+  <div class="controls">
+    <div class="fileupload fileupload-new" data-provides="fileupload">
+      <span class="btn btn-file"><span class="fileupload-new">Select file</span><span class="fileupload-exists">Change</span><input type="file" name='dcdfile' /></span>
+      <span class="fileupload-preview"></span>
+      <a href="#" class="close fileupload-exists" data-dismiss="fileupload" style="float: none">×</a>
+    </div>
+  </div>
+</div>
+
+<div class="control-group" id='message'{% if not error or error.code == 200 %} style="display: none"{% endif %}>
+  <div class="controls">
+    <span class="help-inline alert alert-error">{% if error and error.code != 200 %}{{ error.message }}{% endif %}</span>
+  </div>
+</div>
+
+<div class="control-group">
+  <div class="controls">
+    <button class="btn" type="submit" id='upload'>Upload Files</button>
+  </div>
+</div>
+</form>
+
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form class="form-horizontal" method="POST" id='form' action="{{ url_for('generate', jobid=jobid) }}">
+
+<div class="control-group">
+  <label class="control-label">Backbone conformation</label>
+  <div class="controls">
+    <table class="table-condensed">
+      <tr>
+        <td>Method:</td>
+        <td>
+          <select name='rmsd[method]' class='input-mini' style='height: 24px; width: 25em;'>
+{% for method,title in methods_available %}
+            <option value="{{ method }}"{% if method == default_method %} selected{% endif %}>{{ title }}</option>
+{% endfor %}
+          </select> 
+        </td>
+      </tr>
+      <tr>
+        <td colspan=2>
+          Reference atom selction:
+
+          <table class='table-condensed'>
+            <tr>
+              <td>Receptor:</td>
+              <td><input type='text' name='rmsd[receptor][selection]' value='name C' calss='input-mini' style='height:14px; width: 10em;' required></td>
+            </tr>
+            <tr>
+              <td>Ligand:</td>
+              <td><input type='text' name='rmsd[ligand][selection]' value='name C' calss='input-mini' style='height:14px; width: 10em;' required></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td colspan=2>
+          <table class='table-condensed'>
+            <tr>
+              <td># of windows</td>
+              <td>Window spacing</td>
+            </tr>
+            <tr>
+              <td align=center><input type='text' name='rmsd[nwin]' value='16' calss='input-mini' style='height:14px; width: 4em;' required></td>
+              <td align=center><input type='text' name='rmsd[bin]' value='0.2' calss='input-mini' style='height:14px; width: 4em;' required> Å</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="control-group">
+  <label class="control-label">Interface conformation</label>
+  <div class="controls">
+    <table class="table-condensed">
+      <tr>
+        <td>Method:</td>
+        <td>
+          <select name='sc[method]' class='input-mini' style='height: 24px; width: 25em;'>
+{% for method,title in methods_available %}
+            <option value="{{ method }}"{% if method == default_method %} selected{% endif %}>{{ title }}</option>
+{% endfor %}
+          </select> 
+        </td>
+      </tr>
+      <tr>
+        <td colspan=2>
+          Reference atom selction:
+
+          <table class='table-condensed'>
+            <tr>
+              <td>Receptor:</td>
+              <td><input type='text' name='sc[receptor][selection]' value='name C' calss='input-mini' style='height:14px; width: 10em;' required></td>
+            </tr>
+            <tr>
+              <td>Ligand:</td>
+              <td><input type='text' name='sc[ligand][selection]' value='name C' calss='input-mini' style='height:14px; width: 10em;' required></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td colspan=2>
+          <table class='table-condensed'>
+            <tr>
+              <td># of windows</td>
+              <td>Window spacing</td>
+            </tr>
+            <tr>
+              <td align=center><input type='text' name='sc[nwin]' value='16' calss='input-mini' style='height:14px; width: 4em;' required></td>
+              <td align=center><input type='text' name='sc[bin]' value='0.2' calss='input-mini' style='height:14px; width: 4em;' required> Å</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="control-group">
+  <label class="control-label">Angles</label>
+  <div class="controls">
+    <table class="table-condensed">
+      <tr>
+        <td>Method:</td>
+        <td>
+          <select name='angles[method]' class='input-mini' style='height: 24px; width: 25em;'>
+{% for method,title in methods_available %}
+            <option value="{{ method }}"{% if method == default_method %} selected{% endif %}>{{ title }}</option>
+{% endfor %}
+          </select> 
+        </td>
+      </tr>
+      <tr>
+        <td colspan=2>
+          <table class='table-condensed'>
+            <tr>
+              <td># of windows</td>
+              <td>Window spacing</td>
+            </tr>
+            <tr>
+              <td align=center><input type='text' name='angles[nwin]' value='16' calss='input-mini' style='height:14px; width: 4em;' required></td>
+              <td align=center><input type='text' name='angles[bin]' value='2.0' calss='input-mini' style='height:14px; width: 4em;' required> deg</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="control-group">
+  <label class="control-label">Seperation</label>
+  <div class="controls">
+    <table class="table-condensed">
+      <tr>
+        <td>Method:</td>
+        <td>
+          <select name='sepr[method]' class='input-mini' style='height: 24px; width: 25em;'>
+{% for method,title in methods_available %}
+            <option value="{{ method }}"{% if method == default_method %} selected{% endif %}>{{ title }}</option>
+{% endfor %}
+          </select> 
+        </td>
+      </tr>
+      <tr>
+        <td colspan=2>
+          <table class='table-condensed'>
+            <tr>
+              <td># of windows</td>
+              <td>Rmin</td>
+              <td>Window spacing</td>
+            </tr>
+            <tr>
+              <td align=center><input type='text' name='sepr[nwin]' value='48' calss='input-mini' style='height:14px; width: 4em;' required></td>
+              <td align=center>R<sub>0</sub> - <input type='text' name='sepr[rmin]' value='2.0' calss='input-mini' style='height:14px; width: 4em;' required> Å</td>
+              <td align=center><input type='text' name='sepr[bin]' value='0.5' calss='input-mini' style='height:14px; width: 4em;' required> Å</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="control-group">
+  <div class="controls">
+  <button class="btn" type="submit" id='upload'>Generate Input Files</button>
+  </div>
+</div>
+</form>
+
+{% endblock %}
