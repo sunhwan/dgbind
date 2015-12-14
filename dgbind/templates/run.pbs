@@ -15,16 +15,21 @@ cd $PBS_O_WORKDIR
 
 mkdir -p error
 
-@ ncpus  = 1
+@ ncpus  = {{ nodes_per_job * cpus_per_node }}
 @ cntmax = {{ num_windows }}
 @ pcnt   = $icnt - 1
 @ ncnt   = $icnt + 1
+{% if jobtype == 'Angles' %}
+set target = `echo "{{ refvalue|default(0.0) }} - {{ delta }} / 2 + ( $icnt % 2 - $pcnt % 2 ) * ( {{ delta }} * $icnt / 2 )" | bc`
+{% else %}
+set target = `echo "{{ refvalue|default(0.0) }} + {{ delta }} * $icnt" | bc`
+{% endif %}
+
 if ( $cntmax > $ncnt ) qsub -N {{ jobname }}_$ncnt -v icnt=$ncnt -W depend=afterok:$PBS_JOBID run.pbs
 
-sed -e 's/$step/'$icnt'/g' namd.conf > input.$icnt.conf
+sed -e 's/$step/'$icnt'/g' -e 's/$target/'$target'/g' namd.conf > input.$icnt.conf
 
 if ( $icnt > 0 ) then
-    @ target = {{ delta }} * $icnt
     python prepare.py input.$pcnt.dcd input.$icnt.pdb $target
 endif
 

@@ -7,23 +7,18 @@ from jinja2 import Template
 import MDAnalysis as mda
 import numpy as np
 from MDAnalysis.coordinates.core import get_writer_for
+import copy
 
-def createJobDirs(jobdir, jobname, colvar, spec):
+def createJobDirs(jobdir, jobname, colvars, colvar_type, spec):
     inputdir = spec['inputdir']
     outputdir = spec['outputdir']
     colvarfile = spec['colvarfile']
 
     spec['receptor'] = conf['receptor']['selection']
     spec['ligand'] = conf['ligand']['selection']
-    colvar = colvars.append(colvar, jobname, **spec)
-    colvar.write(colvarfile)
+    spec['jobname'] = jobname
 
-    for cv in colvars:
-        if cv.spec.has_key('refpdb') and cv.spec.has_key('selected_atoms'):
-            refpdb = os.path.join(inputdir, os.path.basename(cv.spec['refpdb']))
-            writer = get_writer_for(format='PDB', multiframe=False)
-            writer(refpdb).write(cv.spec['selected_atoms'])
-
+    colvar = colvars.append(colvar_type, jobname, **spec)
     psffile = os.path.basename(spec['psffile'])
     pdbfile = os.path.basename(spec['pdbfile'])
     shutil.copyfile(spec['psffile'], os.path.join(inputdir, psffile))
@@ -33,7 +28,6 @@ def createJobDirs(jobdir, jobname, colvar, spec):
         prmfile = os.path.basename(prm)
         shutil.copyfile(prm, os.path.join(inputdir, prmfile))
 
-    spec['inputdir'] = inputdir
     spec['pbs'] = conf['pbs']
 
     # PME size
@@ -42,12 +36,12 @@ def createJobDirs(jobdir, jobname, colvar, spec):
     spec['A'], spec['B'], spec['C'] = bbox[1,:] - bbox[0,:]
     spec['xcen'], spec['ycen'], spec['zcen'] = np.average(bbox, axis=0)
 
-    if spec['rest_selection']:
+    if spec.has_key('rest_selection'):
         sptpdb = os.path.join(inputdir, os.path.basename('spt.pdb'))
         writer = get_writer_for(format='PDB', multiframe=False)
         selected_atoms = universe.select_atoms(spec['rest_selection'])
         selected_atoms.set_bfactors(1)
-        writer(sptpdb).write(universe.atoms)
+        writer(sptpdb, bonds=False).write(universe.atoms)
 
     # initial structure preparation
     spec['use_rest'] = True
@@ -73,27 +67,30 @@ def createJobDirs(jobdir, jobname, colvar, spec):
         template = Template(open(realname).read())
         open(filename, 'w').write(template.render(spec))
 
-    return jobdir, inputdir, outputdir
+    return jobdir, inputdir, outputdir, colvars
 
 def createRMSDs(jobname, jobdir, spec, colvars):
-    jobdir, inputdir, outputdir = createJobDirs(jobdir, jobname, 'RMSD', spec)
+    jobdir, inputdir, outputdir, colvars = createJobDirs(jobdir, jobname, colvars, 'RMSD', spec)
     if spec.has_key('refpdb'):
         refpdb = os.path.basename(spec['refpdb'])
         shutil.copyfile(spec['refpdb'], os.path.join(inputdir, refpdb))
+    return colvars
 
 def createAngles(jobname, jobdir, spec, colvars):
     spec['centers'] = spec['refvalue']
     spec['refatoms'] = {}
     for ref in spec['angle']:
         spec['refatoms'][ref] = conf['refatoms'][ref]
-    jobdir, inputdir, outputdir = createJobDirs(jobdir, jobname, 'Angle', spec)
+    jobdir, inputdir, outputdir, colvars = createJobDirs(jobdir, jobname, colvars, 'Angle', spec)
     sys.exit()
+    return colvars
 
 def createDistance(jobname, jobdir, spec, colvars):
     spec['refatoms'] = {}
     for ref in spec['distance']:
         spec['refatoms'][ref] = conf['refatoms'][ref]
-    jobdir, inputdir, outputdir = createJobDirs(jobdir, jobname, 'Distance', spec)
+    jobdir, inputdir, outputdir, colvars = createJobDirs(jobdir, jobname, colvars, 'Distance', spec)
+    return colvars
 
 def createSimulationInput(jobnames, colvars, psffile, pdbfile):
     for jobname in jobnames:
@@ -115,6 +112,7 @@ def createSimulationInput(jobnames, colvars, psffile, pdbfile):
         spec['inputdir'] = inputdir
         spec['outputdir'] = outputdir
         spec['colvarfile'] = colvarfile
+        spec['jobtype'] = jobtype
         spec['jobname'] = jobname
         spec['psffile'] = psffile
         spec['pdbfile'] = pdbfile
@@ -145,12 +143,19 @@ def createSimulationInput(jobnames, colvars, psffile, pdbfile):
         if jobtype == 'Distance':
             spec['distance'] = ['p1', 'l1']
 
-        colvars.append('Omega', 'Omega', selection='receptor and name C', receptor=conf.get('receptor').get('selection'), inputdir=inputdir)
-        colvars.append('Pin', 'Pin', selection='receptor and name C', receptor=conf.get('receptor').get('selection'), inputdir=inputdir)
-
         #method = getattr('create%s' % jobtype)
         method = globals()['create%s' % jobtype]
         method(jobname, jobdir, spec, colvars)
+
+        colvars.append('Omega', 'Omega', selection='receptor and name C', receptor=conf.get('receptor').get('selection'), inputdir=inputdir)
+        colvars.append('Pin', 'Pin', selection='receptor and name C', receptor=conf.get('receptor').get('selection'), inputdir=inputdir)
+        colvars.write(colvarfile)
+
+        for cv in colvars:
+            if cv.spec.has_key('refpdb') and cv.spec.has_key('selected_atoms'):
+                refpdb = os.path.join(inputdir, os.path.basename(cv.spec['refpdb']))
+                writer = get_writer_for(format='PDB', multiframe=False)
+                writer(refpdb).write(cv.spec['selected_atoms'])
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

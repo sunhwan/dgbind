@@ -18,7 +18,7 @@ if __name__ == "__main__":
     parser.add_argument('target', metavar='target', help='target RMSD value')
     args = parser.parse_args()
 
-    universe = mda.Universe("{{ psffile }}", args.dcdfile)
+    universe = mda.Universe("{{ psffile }}", args.dcd)
     ref = mda.Universe("{{ psffile }}", "{{ pdbfile }}")
     R = RMSD(universe, ref, select="{{ selection }}")
     R.run()
@@ -29,4 +29,4 @@ if __name__ == "__main__":
     P = P / np.sum(P)
     idx = weighted_choice(P)
     ts = universe.trajectory[idx]
-    mda.Writer(args.pdbfile, bonds=False).write(universe)
+    mda.Writer(args.pdb, bonds=False).write(universe)

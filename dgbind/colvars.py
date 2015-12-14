@@ -27,7 +27,7 @@ harmonic {
     name          {{ name }}
     colvars       {{ name }}
     forceconstant {{ forceconstant|default(10.0) }}
-    centers       {{ min|default(0.0) }}
+    centers       {{ refvalue|default(0.0) }}
 }
 """
 
@@ -213,6 +213,7 @@ class Colvars(object):
 """
     def __init__(self, conf, psffile, pdbfile):
         self.colvars = []
+        self.colvar_keys = {}
         self.conf = conf
         self.universe = mda.Universe(psffile, pdbfile)
 
@@ -232,13 +233,22 @@ class Colvars(object):
             colvar = ColvarPin(name, self.universe, **kwargs)
         if colvar_type == 'Omega':
             colvar = ColvarOmega(name, self.universe, **kwargs)
-        self.colvars.append(colvar)
+        if name in self.colvar_keys:
+            idx = self.colvar_keys[name]
+            self.colvars[idx] = colvar
+        else:
+            self.colvar_keys[name] = len(self.colvars)
+            self.colvars.append(colvar)
         return self
 
     def write(self, filename):
         colvar_str = ""
         for colvar in self.colvars:
+            if colvar.spec['name'] in ['Pin', 'Omega']: continue
             colvar_str += colvar.write() + "\n"
+
+        colvar_str += self.colvars[self.colvar_keys['Pin']].write() + "\n"
+        colvar_str += self.colvars[self.colvar_keys['Omega']].write() + "\n"
 
         fp = open(filename, 'w')
         fp.write(self._template % colvar_str)
