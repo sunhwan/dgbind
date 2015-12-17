@@ -51,7 +51,7 @@ class ColvarAngle:
 colvar {
     name {{name}}
 
-    {{ angletype }}
+    {{ angletype }} {
         {%- for selected_atoms in refatoms %}
         group{{ loop.index }} {
             atomnumbers {
@@ -107,7 +107,7 @@ colvar {
 harmonic {
     name          {{ name }}
     colvars       {{ name }}
-    forceconstant {{ forceconstant|default(0.1) }}
+    forceconstant {{ forceconstant|default(10.0) }}
     centers       {{ centers }}
 }
 """

@@ -45,9 +45,12 @@ def createJobDirs(jobdir, jobname, colvars, colvar_type, spec):
 
     # initial structure preparation
     spec['use_rest'] = True
-    for filename in ('namd.conf', 'run.pbs', 'prepare.py'):
-        realname = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', filename)
+    for fname in ('input/namd.conf', 'input/run.pbs', 'input/prepare.py'):
+        realname = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', fname)
         filename = os.path.join(os.path.join(inputdir, os.path.basename(realname)))
+        if fname == 'input/run.pbs' and spec['jobtype'] == 'Angles':
+            # angular restraints has minimum at the middle of the arranged windows
+            realname = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', 'input/run-Angles.pbs')
         template = Template(open(realname).read())
         open(filename, 'w').write(template.render(spec, psffile=psffile, pdbfile=pdbfile))
 
@@ -82,10 +85,10 @@ def createAngles(jobname, jobdir, spec, colvars):
     for ref in spec['angle']:
         spec['refatoms'][ref] = conf['refatoms'][ref]
     jobdir, inputdir, outputdir, colvars = createJobDirs(jobdir, jobname, colvars, 'Angle', spec)
-    sys.exit()
     return colvars
 
 def createDistance(jobname, jobdir, spec, colvars):
+    spec['centers'] = spec['refvalue']
     spec['refatoms'] = {}
     for ref in spec['distance']:
         spec['refatoms'][ref] = conf['refatoms'][ref]
@@ -179,16 +182,17 @@ if __name__ == '__main__':
                     'RMSDs/bb_ligand_site',
                     'RMSDs/sc_receptor_site',
                     'RMSDs/sc_ligand_site',
-                    'Angles/phi',
-                    'Angles/theta',
                     'Angles/alpha',
                     'Angles/beta',
                     'Angles/gamma',
+                    'Angles/theta',
+                    'Angles/phi',
                     'Distance/sepR']
     psffile = conf['complex']['psf']
     pdbfile = conf['complex']['pdb']
     colvars = Colvars(conf, psffile, pdbfile)
     createSimulationInput(default_jobs, colvars, psffile, pdbfile)
+    sys.exit()
 
     psffile = conf['receptor']['psf']
     pdbfile = conf['receptor']['pdb']
