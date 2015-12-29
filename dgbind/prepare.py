@@ -55,16 +55,17 @@ def createJobDirs(jobdir, jobname, colvars, colvar_type, spec):
         open(filename, 'w').write(template.render(spec, psffile=psffile, pdbfile=pdbfile))
 
     # input files preparation
-    for i in range(spec['num_windows']):
+    for i in range(spec['num_windows'] * spec['num_temperature']):
         windir = os.path.join(outputdir, str(i))
         if not os.path.exists(windir): os.mkdir(windir)
 
-    for filename in ('umbrella.namd', 'base.conf', 'sort.py', 'prepare.py'):
+    for filename in ('umbrella.namd', 'umbrella_rest.namd'):
+        if filename == 'umbrella.namd' and spec['use_rest']: continue
+        if filename == 'umbrella_rest.namd' and not spec['use_rest']: continue
         realname = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'static', filename)
         shutil.copyfile(realname, os.path.join(jobdir, os.path.basename(realname)))
 
-    spec['use_rest'] = False
-    for filename in ('remd.conf', 'namd.conf', 'run.pbs'):
+    for filename in ('remd.conf', 'base.conf', 'namd.conf', 'run.pbs'):
         realname = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', filename)
         filename = os.path.join(os.path.join(jobdir, os.path.basename(realname)))
         template = Template(open(realname).read())
