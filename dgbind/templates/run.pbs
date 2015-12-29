@@ -22,7 +22,13 @@ mkdir -p error
 
 if ( $cntmax > $ncnt ) qsub -N {{ jobname }}_$ncnt -v icnt=$ncnt -W depend=afterok:$PBS_JOBID run.pbs
 
+{% if windows is defined %}
+{% for window in windows %}
+{{ window }}
+{% endfor %}
+{% else %}
 set target = `echo "{{ refvalue|default(0.0) }} + {{ delta }} * $icnt" | bc`
+{% endif %}
 sed -e 's/$step/'$icnt'/g' -e 's/$target/'$target'/g' namd.conf > input.$icnt.conf
 
 if ( $icnt > 0 ) then

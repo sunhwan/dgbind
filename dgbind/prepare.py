@@ -97,6 +97,7 @@ def createDistance(jobname, jobdir, spec, colvars):
 
 def createSimulationInput(jobnames, colvars, psffile, pdbfile):
     for jobname in jobnames:
+        print jobname
         jobtype, jobname = jobname.split('/')
         if not conf['simulations'].has_key(jobtype) or \
            not conf['simulations'][jobtype].has_key(jobname):
@@ -123,7 +124,12 @@ def createSimulationInput(jobnames, colvars, psffile, pdbfile):
         for k in conf['spec'].keys():
             spec[k] = conf['spec'][k]
         for k in conf['simulations'][jobtype]['default'].keys():
-            spec[k] = conf['simulations'][jobtype]['default'][k]
+            if not spec.has_key(k):
+                spec[k] = conf['simulations'][jobtype]['default'][k]
+            if spec.has_key('windows'):
+                for rid in spec['windows'].keys():
+                    if spec['windows'][rid].has_key(k): continue
+                    spec['windows'][rid][k] = conf['simulations'][jobtype]['default'][k]
         for k in conf['namd'].keys():
             spec[k] = conf['namd'][k]
         if conf['receptor'].has_key('selection'):
@@ -150,10 +156,7 @@ def createSimulationInput(jobnames, colvars, psffile, pdbfile):
         method = globals()['create%s' % jobtype]
         method(jobname, jobdir, spec, colvars)
 
-        colvars.append('Omega', 'Omega', selection='receptor and name C', receptor=conf.get('receptor').get('selection'), inputdir=inputdir)
-        colvars.append('Pin', 'Pin', selection='receptor and name C', receptor=conf.get('receptor').get('selection'), inputdir=inputdir)
-        colvars.write(colvarfile)
-
+        colvars.write(colvarfile, inputdir=inputdir)
         for cv in colvars:
             if cv.spec.has_key('refpdb') and cv.spec.has_key('selected_atoms'):
                 refpdb = os.path.join(inputdir, os.path.basename(cv.spec['refpdb']))
@@ -191,12 +194,13 @@ if __name__ == '__main__':
     psffile = conf['complex']['psf']
     pdbfile = conf['complex']['pdb']
     colvars = Colvars(conf, psffile, pdbfile)
+    colvars.append('Omega', 'Omega', selection='receptor and name C', receptor=conf.get('receptor').get('selection'))
+    colvars.append('Pin', 'Pin', selection='receptor and name C', receptor=conf.get('receptor').get('selection'))
     createSimulationInput(default_jobs, colvars, psffile, pdbfile)
-    sys.exit()
 
     psffile = conf['receptor']['psf']
     pdbfile = conf['receptor']['pdb']
-    bulk_receptor_jobs = ['RMSDs/bb-receptor-bulk', 'RMSDs/sc-receptor-bulk']
+    bulk_receptor_jobs = ['RMSDs/bb_receptor_bulk', 'RMSDs/sc_receptor_bulk']
     colvars = Colvars(conf, psffile, pdbfile)
     colvars.append('Omega', 'Omega', selection='receptor and name C', receptor=conf.get('receptor').get('selection'), ligand=conf.get('ligand').get('selection'))
     colvars.append('Pin', 'Pin', selection='receptor and name C', receptor=conf.get('receptor').get('selection'), ligand=conf.get('ligand').get('selection'))
@@ -204,7 +208,7 @@ if __name__ == '__main__':
 
     psffile = conf['ligand']['psf']
     pdbfile = conf['ligand']['pdb']
-    bulk_ligand_jobs = ['RMSDs/bb-ligand-bulk', 'RMSDs/sc-ligand-bulk']
+    bulk_ligand_jobs = ['RMSDs/bb_ligand_bulk', 'RMSDs/sc_ligand_bulk']
     colvars = Colvars(conf, psffile, pdbfile)
     colvars.append('Omega', 'Omega', selection='ligand and name C', receptor=conf.get('receptor').get('selection'), ligand=conf.get('ligand').get('selection'))
     colvars.append('Pin', 'Pin', selection='ligand and name C', receptor=conf.get('receptor').get('selection'), ligand=conf.get('ligand').get('selection'))

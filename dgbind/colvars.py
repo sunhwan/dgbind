@@ -43,7 +43,11 @@ harmonic {
         self.spec['selected_atoms'].set_bfactors(1)
         self.spec['refpdb'] = '%s.ref' % name
 
-    def write(self):
+    def write(self, **kwargs):
+        if kwargs:
+            for k in kwargs:
+                if self.spec.has_key(k): continue
+                self.spec[k] = kwargs[k]
         return self.template.render(self.spec)
 
 class ColvarAngle:
@@ -81,7 +85,7 @@ harmonic {
         self.spec['refatoms'] = [universe.select_atoms(self.spec['refatoms'][ref]) for ref in self.spec['angle']]
         self.spec['angletype'] = 'angle' if len(self.spec['refatoms']) == 3 else 'dihedral'
 
-    def write(self):
+    def write(self, **kwargs):
         return self.template.render(self.spec)
 
 class ColvarDistance:
@@ -118,7 +122,11 @@ harmonic {
         self.spec['name'] = name
         self.spec['refatoms'] = [universe.select_atoms(self.spec['refatoms'][ref]) for ref in self.spec['distance']]
 
-    def write(self):
+    def write(self, **kwargs):
+        if kwargs:
+            for k in kwargs:
+                if self.spec.has_key(k): continue
+                self.spec[k] = kwargs[k]
         return self.template.render(self.spec)
 
 class ColvarOmega:
@@ -160,7 +168,11 @@ harmonic {
         self.spec['refpdb'] = 'omega.pdb'
         self.spec['selected_atoms'].write(os.path.join('input', self.spec['refpdb']))
 
-    def write(self):
+    def write(self, **kwargs):
+        if kwargs:
+            for k in kwargs:
+                if self.spec.has_key(k): continue
+                self.spec[k] = kwargs[k]
         return self.template.render(self.spec)
 
 class ColvarPin:
@@ -202,7 +214,11 @@ harmonic {
         com = self.spec['selected_atoms'].center_of_mass()
         self.spec['refx'], self.spec['refy'], self.spec['refz'] = com
 
-    def write(self):
+    def write(self, **kwargs):
+        if kwargs:
+            for k in kwargs:
+                if self.spec.has_key(k): continue
+                self.spec[k] = kwargs[k]
         return self.template.render(self.spec)
 
 
@@ -241,14 +257,14 @@ class Colvars(object):
             self.colvars.append(colvar)
         return self
 
-    def write(self, filename):
+    def write(self, filename, inputdir='.'):
         colvar_str = ""
         for colvar in self.colvars:
             if colvar.spec['name'] in ['Pin', 'Omega']: continue
-            colvar_str += colvar.write() + "\n"
+            colvar_str += colvar.write(inputdir=inputdir) + "\n"
 
-        colvar_str += self.colvars[self.colvar_keys['Pin']].write() + "\n"
-        colvar_str += self.colvars[self.colvar_keys['Omega']].write() + "\n"
+        colvar_str += self.colvars[self.colvar_keys['Pin']].write(inputdir=inputdir) + "\n"
+        colvar_str += self.colvars[self.colvar_keys['Omega']].write(inputdir=inputdir) + "\n"
 
         fp = open(filename, 'w')
         fp.write(self._template % colvar_str)

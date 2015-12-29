@@ -14,12 +14,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('dcd', metavar='dcdfile', help='input DCD filename')
     parser.add_argument('pdb', metavar='pdbfile', help='output PDB filename')
-    parser.add_argument('target', metavar='target', help='target RMSD value')
+    parser.add_argument('target', metavar='target', help='target CV value')
+    parser.add_argument('force', metavar='force', help='target force constant', default={{ force }})
     args = parser.parse_args()
 
     universe = mda.Universe("{{ psffile }}", args.dcd)
     ref = mda.Universe("{{ psffile }}", "{{ pdbfile }}")
-{% if jobtype == 'RMSD' %}
+{% if jobtype == 'RMSDs' %}
     from MDAnalysis.analysis.rms import RMSD
     R = RMSD(universe, ref, select="{{ selection }}")
     R.run()
@@ -68,7 +69,8 @@ if __name__ == "__main__":
 
     kbt = 1.0e-3 * 8.314472 / 4.1868 * {{ temperature }}
     target = float(args.target)
-    P = np.exp(-1/kbt*0.5*{{ force }}*(obs - target)**2)
+    force = float(args.force)
+    P = np.exp(-1/kbt*0.5*force*(obs - target)**2)
     P = P / np.sum(P)
     idx = weighted_choice(P)
     ts = universe.trajectory[idx]
