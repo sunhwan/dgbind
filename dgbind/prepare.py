@@ -44,6 +44,7 @@ def createJobDirs(jobdir, jobname, colvars, colvar_type, spec):
         writer(sptpdb, bonds=False).write(universe.atoms)
 
     # initial structure preparation
+    use_rest = spec['use_rest']
     spec['use_rest'] = True
     for fname in ('input/namd.conf', 'input/run.pbs', 'input/prepare.py'):
         realname = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', fname)
@@ -55,6 +56,7 @@ def createJobDirs(jobdir, jobname, colvars, colvar_type, spec):
         open(filename, 'w').write(template.render(spec, psffile=psffile, pdbfile=pdbfile))
 
     # input files preparation
+    spec['use_rest'] = use_rest
     for i in range(spec['num_windows'] * spec['num_temperature']):
         windir = os.path.join(outputdir, str(i))
         if not os.path.exists(windir): os.mkdir(windir)
@@ -69,11 +71,12 @@ def createJobDirs(jobdir, jobname, colvars, colvar_type, spec):
         realname = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', filename)
         filename = os.path.join(os.path.join(jobdir, os.path.basename(realname)))
         template = Template(open(realname).read())
-        open(filename, 'w').write(template.render(spec))
+        open(filename, 'w').write(template.render(spec, psffile=psffile, pdbfile=pdbfile))
 
     return jobdir, inputdir, outputdir, colvars
 
 def createRMSDs(jobname, jobdir, spec, colvars):
+    spec['min'] = spec.get('refvalue', 0.0)
     jobdir, inputdir, outputdir, colvars = createJobDirs(jobdir, jobname, colvars, 'RMSD', spec)
     if spec.has_key('refpdb'):
         refpdb = os.path.basename(spec['refpdb'])
@@ -82,6 +85,7 @@ def createRMSDs(jobname, jobdir, spec, colvars):
 
 def createAngles(jobname, jobdir, spec, colvars):
     spec['centers'] = spec['refvalue']
+    spec['min'] = spec['refvalue'] - spec['num_windows'] / 2.0 * spec['delta']
     spec['refatoms'] = {}
     for ref in spec['angle']:
         spec['refatoms'][ref] = conf['refatoms'][ref]
@@ -90,6 +94,7 @@ def createAngles(jobname, jobdir, spec, colvars):
 
 def createDistance(jobname, jobdir, spec, colvars):
     spec['centers'] = spec['refvalue']
+    spec['min'] = spec['refvalue'] - 0.5
     spec['refatoms'] = {}
     for ref in spec['distance']:
         spec['refatoms'][ref] = conf['refatoms'][ref]

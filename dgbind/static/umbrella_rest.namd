@@ -100,9 +100,18 @@ if {$i_run} { #restart
   colvarsInput $restart_root.$replica_id.colvars.state
 } elseif { [info exists input_root] } {
   set ir [format $input_root $replica_id $replica_id]
-  bincoordinates $ir.coor
-  binvelocities $ir.vel
-  extendedSystem $ir.xsc
+  if {[file exists $ir.coor]} {
+    bincoordinates $ir.coor
+    binvelocities $ir.vel
+    extendedSystem $ir.xsc
+  } else {
+    set ir [format $input_root [expr $replica_id % $num_umbrella] [expr $replica_id % $num_umbrella]]
+    if {[file exists $ir.coor]} {
+      bincoordinates $ir.coor
+      binvelocities $ir.vel
+      extendedSystem $ir.xsc
+    }
+  }
 } else {
   temperature $temperature
 }
