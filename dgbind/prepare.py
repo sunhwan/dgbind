@@ -55,6 +55,14 @@ def createJobDirs(jobdir, jobname, colvars, colvar_type, spec):
         template = Template(open(realname).read())
         open(filename, 'w').write(template.render(spec, psffile=psffile, pdbfile=pdbfile))
 
+    # path optimization input
+    if spec['jobtype'] == 'Distance':
+        for fname in ('pathopt/pathopt-run.pbs', 'pathopt/pathopt-base.conf', 'pathopt/pathopt-remd.conf', 'pathopt/pathopt-prepare.py'):
+            realname = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', fname)
+            filename = os.path.join(os.path.join(jobdir, os.path.basename(realname)))
+            template = Template(open(realname).read())
+            open(filename, 'w').write(template.render(spec, psffile=psffile, pdbfile=pdbfile))
+
     # input files preparation
     spec['use_rest'] = use_rest
     for i in range(spec['num_windows'] * spec['num_temperature']):
@@ -197,6 +205,7 @@ if __name__ == '__main__':
                     'Angles/theta',
                     'Angles/phi',
                     'Distance/sepR']
+    default_jobs = ['Distance/sepR']
     psffile = conf['complex']['psf']
     pdbfile = conf['complex']['pdb']
     colvars = Colvars(conf, psffile, pdbfile)

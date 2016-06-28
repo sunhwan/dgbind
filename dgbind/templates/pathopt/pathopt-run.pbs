@@ -22,10 +22,10 @@ mkdir -p error
 
 if ( $cntmax > $ncnt ) qsub -N {{ jobname }}_$ncnt -v icnt=$ncnt -W depend=afterok:$PBS_JOBID run.pbs
 
-sed -e 's/$step/'$icnt'/g' -e 's/$pcnt/'$pcnt'/g' base.conf > job.$icnt.conf
+sed -e 's/$step/'$icnt'/g' -e 's/$pcnt/'$pcnt'/g' pathopt-base.conf > pathopt/run$run/job.$icnt.conf
 
 {% if use_rest %}
-mpirun -np $ncpus {{ restdir }}/namd2 +replicas {{ num_windows * num_temperature }} job.$icnt.conf +stdout output/%d/job$icnt.%d.log
+mpirun -np $ncpus {{ restdir }}/namd2 +replicas {{ num_windows * num_temperature }} pathopt/run$run/job.$icnt.conf +stdout pathopt/run$run/output/%d/job$icnt.%d.log
 {% else %}
-mpirun -np $ncpus {{ namddir }}/namd2 +replicas {{ num_windows * num_temperature }} job.$icnt.conf +stdout output/%d/job$icnt.%d.log
+mpirun -np $ncpus {{ namddir }}/namd2 +replicas {{ num_windows * num_temperature }} job.$icnt.conf +stdout output/%d/job$icnt.%d.log    
 {% endif %}

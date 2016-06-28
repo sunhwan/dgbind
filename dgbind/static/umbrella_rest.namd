@@ -93,6 +93,7 @@ langevinTemp $temperature
 langevinPistonTemp $temperature
 outputname [format $job_output_root.$replica_id $replica_id]
 
+set readcoordinate 1
 if {$i_run} { #restart
   bincoordinates $restart_root.$replica_id.coor
   binvelocities $restart_root.$replica_id.vel
@@ -100,17 +101,18 @@ if {$i_run} { #restart
   colvarsInput $restart_root.$replica_id.colvars.state
 } elseif { [info exists input_root] } {
   set ir [format $input_root $replica_id $replica_id]
-  if {[file exists $ir.coor]} {
+  if {![file exists $ir.coor] && ![file exists $ir.pdb]} {
+    set ir [format $input_root [expr $replica_id % $num_umbrella] [expr $replica_id % $num_umbrella]
+  }
+  if {[file exists $ir.coor]} { 
     bincoordinates $ir.coor
     binvelocities $ir.vel
     extendedSystem $ir.xsc
-  } else {
-    set ir [format $input_root [expr $replica_id % $num_umbrella] [expr $replica_id % $num_umbrella]]
-    if {[file exists $ir.coor]} {
-      bincoordinates $ir.coor
-      binvelocities $ir.vel
-      extendedSystem $ir.xsc
-    }
+  } elseif {[file exists $ir.pdb] && [file exists $ir.xsc]} {
+    set readcoordinate 0
+    coordinates $ir.pdb
+    extendedSystem $ir.xsc
+    temperature $temperature
   }
 } else {
   temperature $temperature
